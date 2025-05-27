@@ -1,14 +1,10 @@
 import { Link } from "expo-router";
-import React from "react";
-import {
-  Button,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React, { useEffect } from "react";
+import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
 // import { ColorPicker } from 'react-native-color-picker';
+import ShowNotes from "@/app/showNotes";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import uuid from "react-native-uuid";
 
 export default function Home() {
   const [showNotesDialogBox, setShowNotesDialogBox] = React.useState(false);
@@ -16,19 +12,60 @@ export default function Home() {
   const [colorValue, setColorValue] = React.useState("");
   const [notesTitleValue, setNotesTitleValue] = React.useState("");
   const [notesDataArray, setNotesDataArray] = React.useState<
-    { color: string; title: string; time: string }[]
+    { key: string; color: string; title: string; time: string }[]
   >([]);
 
   const [addedNotesTime, setAddedNotesTime] = React.useState("");
 
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const storedData = await AsyncStorage.getItem("notesDataArray");
+        if (storedData !== null) {
+          setNotesDataArray(JSON.parse(storedData));
+        }
+      } catch (error) {
+        console.error("Failed to load notesDataArray:", error);
+      }
+    };
+
+    loadNotes();
+  }, []);
+
+  useEffect(() => {
+    const saveNotes = async () => {
+      try {
+        await AsyncStorage.setItem(
+          "notesDataArray",
+          JSON.stringify(notesDataArray)
+        );
+      } catch (error) {
+        console.error("Failed to save notesDataArray:", error);
+      }
+    };
+
+    saveNotes();
+  }, [notesDataArray]);
+  const removeNote = (keyToRemove: string) => {
+    const updatedNotes = notesDataArray.filter(
+      (note) => note.key !== keyToRemove
+    );
+    setNotesDataArray(updatedNotes);
+  };
+
   const addNotes = () => {
     const now = new Date();
-    const timeString = now.toLocaleString();
+    const timeString = now.toLocaleDateString();
     setAddedNotesTime(timeString);
     setShowNotesDialogBox(false);
     return setNotesDataArray((prev) => [
       ...prev,
-      { color: colorValue, title: notesTitleValue, time: addedNotesTime },
+      {
+        key: uuid.v4(),
+        color: colorValue,
+        title: notesTitleValue,
+        time: addedNotesTime,
+      },
     ]);
   };
 
@@ -42,43 +79,50 @@ export default function Home() {
         ></Button>
       </View>
       {showNotesDialogBox ? (
-        <View
-          style={[
-            styles.notesBoxes,
-            {
-              backgroundColor: colorValue,
-              borderStyle: "solid",
-              borderLeftWidth: 4,
-            },
-          ]}
-        >
+        <View>
+          <ShowNotes />
           <Button
             onPress={() => setShowNotesDialogBox(false)}
             title="Delete"
           ></Button>
-          <TextInput
-            style={styles.input}
-            onChangeText={(text) => {
-              setNotesTitleValue(text);
-            }}
-            value={notesTitleValue}
-          />
-          <TextInput
-            style={styles.input}
-            onChangeText={(text) => {
-              setColorValue(text);
-            }}
-            value={colorValue}
-          />
-          <Button onPress={() => addNotes()} title="Add New Note"></Button>
         </View>
       ) : (
+        // <View
+        //   style={[
+        //     styles.notesBoxes,
+        //     {
+        //       backgroundColor: colorValue,
+        //       borderStyle: "solid",
+        //       borderLeftWidth: 4,
+        //     },
+        //   ]}
+        // >
+        //   <Button
+        //     onPress={() => setShowNotesDialogBox(false)}
+        //     title="Delete"
+        //   ></Button>
+        //   <TextInput
+        //     style={styles.input}
+        //     onChangeText={(text) => {
+        //       setNotesTitleValue(text);
+        //     }}
+        //     value={notesTitleValue}
+        //   />
+        //   <TextInput
+        //     style={styles.input}
+        //     onChangeText={(text) => {
+        //       setColorValue(text);
+        //     }}
+        //     value={colorValue}
+        //   />
+        //   <Button onPress={() => addNotes()} title="Add New Note"></Button>
+        // </View>
         <ScrollView>
           <View style={styles.homeScreenContainer}>
             {notesDataArray.map((val, key) => {
               return (
                 <View
-                  key={key}
+                  key={val.key}
                   style={[
                     styles.notesBoxes,
                     {
@@ -91,12 +135,20 @@ export default function Home() {
                   <Link
                     href={{
                       pathname: "/showNotes",
-                      params: { title: val.title, color: val.color },
+                      params: { key: key, title: val.title, color: val.color },
                     }}
                   >
-                    <Text>{val.title}</Text>
-                    <Text>{val.time}</Text>
+                    <Text style={{ textAlign: "center" }}>
+                      Title: {val.title}
+                      {"\n"}
+                      {"\n"}
+                      Date: {val.time}
+                    </Text>
                   </Link>
+                  <Button
+                    onPress={() => removeNote(val.key)}
+                    title="Delete Note"
+                  ></Button>
                 </View>
               );
             })}
@@ -166,7 +218,7 @@ const styles = StyleSheet.create({
 
   notesBoxes: {
     boxShadow: "1px 1px 2px 1px lightgray",
-    padding: 53,
+    padding: 43,
     justifyContent: "flex-start",
     flexDirection: "column",
   },

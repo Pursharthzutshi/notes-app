@@ -1,5 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   ScrollView,
@@ -19,7 +20,7 @@ export default function ShowNotes() {
   const [textColor, setTextColor] = useState("#000000");
   const [showColorPickerModal, setShowColorPickerModal] = useState(false);
 
-  const [notesText, setNotesText] = useState([]);
+  const [notesText, setNotesText] = useState("");
 
   const fontSizeData = [
     { label: "8", value: 8 },
@@ -31,7 +32,51 @@ export default function ShowNotes() {
     { label: "150", value: 150 },
   ];
 
-  console.log(notesText);
+  useEffect(() => {
+    const loadSavedNotes = async () => {
+      if (title) {
+        const getSavedNotesAndProperties = await AsyncStorage.getItem(
+          `notesText_${title}`
+        );
+        if (getSavedNotesAndProperties) {
+          try {
+            const getSavedNotesAndPropertiesObject = JSON.parse(
+              getSavedNotesAndProperties
+            );
+            setNotesText(getSavedNotesAndPropertiesObject.text || "");
+            setTextFontSize(
+              getSavedNotesAndPropertiesObject.textFontSize || "Font Size 🔍"
+            );
+            setTextColor(
+              getSavedNotesAndPropertiesObject.textColor || "#000000"
+            );
+          } catch {
+            setNotesText(getSavedNotesAndProperties);
+          }
+        }
+      }
+    };
+    loadSavedNotes();
+  }, [title]);
+
+  useEffect(() => {
+    const savedNotesAndPropertiesObject = {
+      text: notesText,
+      textFontSize,
+      textColor,
+    };
+
+    const saveNotes = async () => {
+      if (title) {
+        await AsyncStorage.setItem(
+          `notesText_${title}`,
+          JSON.stringify(savedNotesAndPropertiesObject)
+        );
+      }
+    };
+    saveNotes();
+  }, [notesText, textFontSize, textColor, title]);
+  // console.log(notesText);
 
   // const renderLabel = () => {
   //   if (value || isFocus) {
@@ -52,9 +97,9 @@ export default function ShowNotes() {
     setTextFontSize(numericText);
   };
 
-  const testText = notesText.map((val: any) => {
-    return val;
-  });
+  // const testText = notesText.map((val: any) => {
+  //   return val;
+  // });
 
   return (
     <View style={styles.showNotesPage}>
@@ -84,7 +129,7 @@ export default function ShowNotes() {
         </View>
         <TextInput
           placeholder="Enter Notes"
-          onChangeText={(text) => setNotesText(text.split("") as any)}
+          onChangeText={(text: any) => setNotesText(text)}
           scrollEnabled={true}
           multiline={true}
           style={[
@@ -101,6 +146,7 @@ export default function ShowNotes() {
           textBreakStrategy="simple"
           autoCorrect={false}
           autoCapitalize="none"
+          value={notesText}
         />
       </View>
 
