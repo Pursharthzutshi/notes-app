@@ -1,0 +1,21 @@
+      {/* {
+        notesData.map((val)=>{
+          return (
+            <View style={[styles.notesBoxes,{ backgroundColor: colorValue, borderStyle: 'solid', borderLeftWidth:4 }]}>
+          <Link href="/../components/Home" >
+            <Text>{val.heading}</Text>
+          </Link>
+          </View>
+          ) 
+        })
+      } */}
+
+      
+          {/* <ColorPicker
+    onColorSelected={color => alert(`Color selected: ${color}`)}
+    style={{flex: 1}}
+  /> */}
+
+  
+      //  <View style={styles.addNotesDialogBox}>
+      
